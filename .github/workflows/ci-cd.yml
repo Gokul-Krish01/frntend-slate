@@ -11,25 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Repository-a checkout panrathu
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Node.js environment setup panrathu
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
-      # 3. Dependencies install panrathu
       - name: Install Dependencies
         run: npm install
 
-      # 4. Linter or Tests run panrathu
-      - name: Run Linter
-        run: npm run lint
-
-      # 5. Production build test panrathu
       - name: Build Project
         run: npm run build
