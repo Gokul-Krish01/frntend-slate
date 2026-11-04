@@ -22,6 +22,11 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      # ---- INGA THAAN TEST STEP ADD PANNUM ----
+      - name: Run Tests
+        run: npm test -- --watchAll=false
+        # (-- --watchAll=false nu podurathu enna na, GitHub Actions headless environment-la test run aagi appadiye automatic-ah exit aaganum, illana hang aagidum.)
+
       - name: Build Project
         run: npm run build
 
@@ -29,4 +34,4 @@ jobs:
         run: npm install -g zcatalyst-cli
 
       - name: Deploy to Zoho Catalyst
-        run: catalyst deploy --token ${{ secrets.CATALYST_REFRESH_TOKEN }} --project 10031000000013024
+        run: catalyst deploy --token ${{ secrets.CATALYST_REFRESH_TOKEN }}
