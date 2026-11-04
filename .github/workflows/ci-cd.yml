@@ -3,8 +3,7 @@ name: React CI/CD Pipeline
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -25,3 +24,9 @@ jobs:
 
       - name: Build Project
         run: npm run build
+
+      - name: Install Zoho Catalyst CLI
+        run: npm install -g zcatalyst-cli
+
+      - name: Deploy to Zoho Catalyst
+        run: catalyst deploy --token ${{ secrets.CATALYST_REFRESH_TOKEN }}
