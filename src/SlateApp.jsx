@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 
-
 const API_URL = 'https://cld-bckend-prod.summatryaws.workers.dev';
 
 export default function SlateApp() {
+  // D1 Database States
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [dataList, setDataList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // App load agum pothu backend-la irundhu items-a fetch panrom
+  // R2 Storage States
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileList, setFileList] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  // Fetch D1 Items
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -23,11 +28,25 @@ export default function SlateApp() {
     }
   };
 
+  // Fetch R2 Files
+  const fetchFiles = async () => {
+    try {
+      const response = await fetch(`${API_URL}/files`);
+      const data = await response.json();
+      if (data.success) {
+        setFileList(data.files);
+      }
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
+    fetchFiles();
   }, []);
 
-  // Item add panra function (POST request)
+  // 1. D1: Add Item
   const handleAdd = async () => {
     if (inputText.trim() === '') return;
     try {
@@ -46,7 +65,7 @@ export default function SlateApp() {
     }
   };
 
-  // Item delete panra function (DELETE request)
+  // 2. D1: Delete Item
   const handleDelete = async (indexToDelete) => {
     try {
       const response = await fetch(`${API_URL}/items/${indexToDelete}`, {
@@ -61,7 +80,50 @@ export default function SlateApp() {
     }
   };
 
-  // Search filter logic
+  // 3. R2: Upload File
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+    try {
+      setUploading(true);
+      const fileName = encodeURIComponent(selectedFile.name);
+      const response = await fetch(`${API_URL}/upload/${fileName}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': selectedFile.type || 'application/octet-stream',
+        },
+        body: selectedFile,
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSelectedFile(null);
+        // Reset file input element
+        document.getElementById('fileInput').value = '';
+        fetchFiles();
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 4. R2: Delete File
+  const handleFileDelete = async (fileName) => {
+    try {
+      const response = await fetch(`${API_URL}/files/${encodeURIComponent(fileName)}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchFiles();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+  };
+
+  // Filter D1 Items
   const filteredList = dataList.filter(item =>
     item.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -70,65 +132,118 @@ export default function SlateApp() {
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>Testing Console</h1>
-        <p style={styles.subtitle}>dummy test for leearn app list</p>
+        <p style={styles.subtitle}>Cloudflare D1 & R2 Storage Management</p>
       </header>
 
       <main style={styles.card}>
-        <div style={styles.inputGroup}>
-          <input
-            type="text"
-            placeholder="Type something to test..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            style={styles.input}
-          />
-          <button onClick={handleAdd} style={styles.button}>
-            Add Item
-          </button>
-        </div>
-
-        {dataList.length > 0 && (
-          <div style={styles.searchGroup}>
+        {/* ================= D1 DATABASE SECTION ================= */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>🗄️ D1 Database Items</h2>
+          <div style={styles.inputGroup}>
             <input
               type="text"
-              placeholder="Search items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
+              placeholder="Type something to test..."
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+              style={styles.input}
             />
-          </div>
-        )}
-
-        <div style={styles.listSection}>
-          <div style={styles.listHeaderRow}>
-            <h3 style={styles.listTitle}>
-              Backend Data List ({filteredList.length}/{dataList.length}):
-            </h3>
+            <button onClick={handleAdd} style={styles.button}>
+              Add Item
+            </button>
           </div>
 
-          {loading ? (
-            <p style={styles.emptyText}>Loading from backend...</p>
-          ) : filteredList.length === 0 ? (
-            <p style={styles.emptyText}>
-              {dataList.length === 0 ? 'No items in backend yet.' : 'No matching items found.'}
-            </p>
-          ) : (
-            <ul style={styles.list}>
-              {filteredList.map((item, index) => (
-                <li key={index} style={styles.listItem}>
-                  <span style={styles.itemText}>{item}</span>
-                  <button 
-                    onClick={() => handleDelete(dataList.indexOf(item))} 
-                    style={styles.deleteButton}
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {dataList.length > 0 && (
+            <div style={styles.searchGroup}>
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={styles.searchInput}
+              />
+            </div>
           )}
-        </div>
+
+          <div style={styles.listSection}>
+            <div style={styles.listHeaderRow}>
+              <h3 style={styles.listTitle}>
+                Items List ({filteredList.length}/{dataList.length}):
+              </h3>
+            </div>
+
+            {loading ? (
+              <p style={styles.emptyText}>Loading items from D1...</p>
+            ) : filteredList.length === 0 ? (
+              <p style={styles.emptyText}>
+                {dataList.length === 0 ? 'No items in database yet.' : 'No matching items found.'}
+              </p>
+            ) : (
+              <ul style={styles.list}>
+                {filteredList.map((item, index) => (
+                  <li key={index} style={styles.listItem}>
+                    <span style={styles.itemText}>{item}</span>
+                    <button 
+                      onClick={() => handleDelete(dataList.indexOf(item))} 
+                      style={styles.deleteButton}
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+
+        <hr style={styles.divider} />
+
+        {/* ================= R2 STORAGE SECTION ================= */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>📦 R2 Object Storage Files</h2>
+          <div style={styles.inputGroup}>
+            <input
+              id="fileInput"
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files[0])}
+              style={{ ...styles.input, padding: '6px 10px' }}
+            />
+            <button 
+              onClick={handleFileUpload} 
+              style={{ ...styles.button, backgroundColor: '#10b981' }}
+              disabled={uploading || !selectedFile}
+            >
+              {uploading ? 'Uploading...' : 'Upload File'}
+            </button>
+          </div>
+
+          <div style={styles.listSection}>
+            <h3 style={styles.listTitle}>Uploaded Files ({fileList.length}):</h3>
+
+            {fileList.length === 0 ? (
+              <p style={styles.emptyText}>No files in R2 bucket yet.</p>
+            ) : (
+              <ul style={styles.list}>
+                {fileList.map((file) => (
+                  <li key={file.key} style={styles.listItem}>
+                    <div>
+                      <span style={styles.itemText}>{file.key}</span>
+                      <small style={styles.fileSize}>
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </small>
+                    </div>
+                    <button 
+                      onClick={() => handleFileDelete(file.key)} 
+                      style={styles.deleteButton}
+                    >
+                      Delete File
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   );
@@ -156,12 +271,25 @@ const styles = {
     margin: 0,
   },
   card: {
-    maxWidth: '500px',
+    maxWidth: '550px',
     margin: '0 auto',
     backgroundColor: '#ffffff',
     borderRadius: '12px',
     padding: '24px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+  },
+  section: {
+    marginBottom: '10px',
+  },
+  sectionTitle: {
+    fontSize: '18px',
+    color: '#1e293b',
+    marginBottom: '14px',
+  },
+  divider: {
+    border: 'none',
+    borderTop: '1px solid #e2e8f0',
+    margin: '24px 0',
   },
   inputGroup: {
     display: 'flex',
@@ -209,9 +337,9 @@ const styles = {
     marginBottom: '12px',
   },
   listTitle: {
-    fontSize: '16px',
+    fontSize: '15px',
     color: '#2d3748',
-    margin: 0,
+    margin: '0 0 10px 0',
   },
   emptyText: {
     color: '#a0aec0',
@@ -238,7 +366,11 @@ const styles = {
     color: '#334155',
     fontSize: '14px',
     wordBreak: 'break-all',
-    paddingRight: '10px',
+    paddingRight: '6px',
+  },
+  fileSize: {
+    color: '#64748b',
+    fontSize: '12px',
   },
   deleteButton: {
     backgroundColor: '#fee2e2',
