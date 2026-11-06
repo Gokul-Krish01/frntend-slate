@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 
-const API_URL = 'https://cld-bckend.summatryaws.workers.dev';
+const API_URL = 'https://cld-bckend-prod.summatryaws.workers.dev';
 
 export default function SlateApp() {
   const [inputText, setInputText] = useState('');
