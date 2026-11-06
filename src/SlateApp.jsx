@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// Neenga deploy panra Cloudflare Worker-oda URL-a inge podanum (e.g., https://my-backend.username.workers.dev)
+
 const API_URL = 'https://cld-bckend.summatryaws.workers.dev';
 
 export default function SlateApp() {
@@ -69,8 +69,8 @@ export default function SlateApp() {
   return (
     <div style={styles.container}>
       <header style={styles.header}>
-        <h1 style={styles.title}>Zoho Slate Testing Console</h1>
-        <p style={styles.subtitle}>Full-Stack React + Cloudflare Worker UI</p>
+        <h1 style={styles.title}>Testing Console</h1>
+        <p style={styles.subtitle}>dummy test for leearn app list</p>
       </header>
 
       <main style={styles.card}>
