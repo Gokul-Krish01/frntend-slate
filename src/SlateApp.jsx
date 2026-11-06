@@ -1,39 +1,67 @@
 import React, { useState, useEffect } from 'react';
 
+// Neenga deploy panra Cloudflare Worker-oda URL-a inge podanum (e.g., https://my-backend.username.workers.dev)
+const API_URL = 'https://cld-bckend.summatryaws.workers.dev';
+
 export default function SlateApp() {
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // LocalStorage-la data save aagura maathiri state initialize panrom
-  const [dataList, setDataList] = useState(() => {
-    const savedData = localStorage.getItem('slate_items');
-    return savedData ? JSON.parse(savedData) : [];
-  });
+  const [dataList, setDataList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // List change aagum pothu ellam localStorage-la save agum
-  useEffect(() => {
-    localStorage.setItem('slate_items', JSON.stringify(dataList));
-  }, [dataList]);
-
-  const handleAdd = () => {
-    if (inputText.trim() === '') return;
-    setDataList([...dataList, inputText.trim()]);
-    setInputText('');
-  };
-
-  // Oru specific item-a delete panraku function
-  const handleDelete = (indexToDelete) => {
-    setDataList(dataList.filter((_, index) => index !== indexToDelete));
-  };
-
-  // Ella items-ayum clear panraku function
-  const handleClearAll = () => {
-    if (window.confirm('Are you sure you want to clear all items?')) {
-      setDataList([]);
+  // App load agum pothu backend-la irundhu items-a fetch panrom
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/items`);
+      const data = await response.json();
+      setDataList(data);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Search filter apply panra logic
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  // Item add panra function (POST request)
+  const handleAdd = async () => {
+    if (inputText.trim() === '') return;
+    try {
+      const response = await fetch(`${API_URL}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: inputText.trim() }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDataList(data.items);
+        setInputText('');
+      }
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
+  };
+
+  // Item delete panra function (DELETE request)
+  const handleDelete = async (indexToDelete) => {
+    try {
+      const response = await fetch(`${API_URL}/items/${indexToDelete}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setDataList(data.items);
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  // Search filter logic
   const filteredList = dataList.filter(item =>
     item.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -42,11 +70,10 @@ export default function SlateApp() {
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>Zoho Slate Testing Console</h1>
-        <p style={styles.subtitle}>React Frontend UI for Catalyst Testing (Advanced)</p>
+        <p style={styles.subtitle}>Full-Stack React + Cloudflare Worker UI</p>
       </header>
 
       <main style={styles.card}>
-        {/* Input & Add Section */}
         <div style={styles.inputGroup}>
           <input
             type="text"
@@ -61,7 +88,6 @@ export default function SlateApp() {
           </button>
         </div>
 
-        {/* Search Filter Section */}
         {dataList.length > 0 && (
           <div style={styles.searchGroup}>
             <input
@@ -74,22 +100,18 @@ export default function SlateApp() {
           </div>
         )}
 
-        {/* List Section */}
         <div style={styles.listSection}>
           <div style={styles.listHeaderRow}>
             <h3 style={styles.listTitle}>
-              Test Data List ({filteredList.length}/{dataList.length}):
+              Backend Data List ({filteredList.length}/{dataList.length}):
             </h3>
-            {dataList.length > 0 && (
-              <button onClick={handleClearAll} style={styles.clearButton}>
-                Clear All
-              </button>
-            )}
           </div>
 
-          {filteredList.length === 0 ? (
+          {loading ? (
+            <p style={styles.emptyText}>Loading from backend...</p>
+          ) : filteredList.length === 0 ? (
             <p style={styles.emptyText}>
-              {dataList.length === 0 ? 'No items added yet.' : 'No matching items found.'}
+              {dataList.length === 0 ? 'No items in backend yet.' : 'No matching items found.'}
             </p>
           ) : (
             <ul style={styles.list}>
@@ -173,16 +195,6 @@ const styles = {
     borderRadius: '6px',
     padding: '10px 18px',
     fontSize: '14px',
-    cursor: 'pointer',
-    fontWeight: '600',
-  },
-  clearButton: {
-    backgroundColor: 'transparent',
-    color: '#ef4444',
-    border: '1px solid #fecaca',
-    borderRadius: '4px',
-    padding: '4px 8px',
-    fontSize: '12px',
     cursor: 'pointer',
     fontWeight: '600',
   },
