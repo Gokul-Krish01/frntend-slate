@@ -1,29 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function SlateApp() {
   const [inputText, setInputText] = useState('');
-  const [dataList, setDataList] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // LocalStorage-la data save aagura maathiri state initialize panrom
+  const [dataList, setDataList] = useState(() => {
+    const savedData = localStorage.getItem('slate_items');
+    return savedData ? JSON.parse(savedData) : [];
+  });
+
+  // List change aagum pothu ellam localStorage-la save agum
+  useEffect(() => {
+    localStorage.setItem('slate_items', JSON.stringify(dataList));
+  }, [dataList]);
 
   const handleAdd = () => {
     if (inputText.trim() === '') return;
-    setDataList([...dataList, inputText]);
+    setDataList([...dataList, inputText.trim()]);
     setInputText('');
   };
+
+  // Oru specific item-a delete panraku function
+  const handleDelete = (indexToDelete) => {
+    setDataList(dataList.filter((_, index) => index !== indexToDelete));
+  };
+
+  // Ella items-ayum clear panraku function
+  const handleClearAll = () => {
+    if (window.confirm('Are you sure you want to clear all items?')) {
+      setDataList([]);
+    }
+  };
+
+  // Search filter apply panra logic
+  const filteredList = dataList.filter(item =>
+    item.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>Zoho Slate Testing Console</h1>
-        <p style={styles.subtitle}>React Frontend UI for Catalyst Testing</p>
+        <p style={styles.subtitle}>React Frontend UI for Catalyst Testing (Advanced)</p>
       </header>
 
       <main style={styles.card}>
+        {/* Input & Add Section */}
         <div style={styles.inputGroup}>
           <input
             type="text"
             placeholder="Type something to test..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             style={styles.input}
           />
           <button onClick={handleAdd} style={styles.button}>
@@ -31,15 +61,47 @@ export default function SlateApp() {
           </button>
         </div>
 
+        {/* Search Filter Section */}
+        {dataList.length > 0 && (
+          <div style={styles.searchGroup}>
+            <input
+              type="text"
+              placeholder="Search items..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
+        )}
+
+        {/* List Section */}
         <div style={styles.listSection}>
-          <h3 style={styles.listTitle}>Test Data List:</h3>
-          {dataList.length === 0 ? (
-            <p style={styles.emptyText}>No items added yet.</p>
+          <div style={styles.listHeaderRow}>
+            <h3 style={styles.listTitle}>
+              Test Data List ({filteredList.length}/{dataList.length}):
+            </h3>
+            {dataList.length > 0 && (
+              <button onClick={handleClearAll} style={styles.clearButton}>
+                Clear All
+              </button>
+            )}
+          </div>
+
+          {filteredList.length === 0 ? (
+            <p style={styles.emptyText}>
+              {dataList.length === 0 ? 'No items added yet.' : 'No matching items found.'}
+            </p>
           ) : (
             <ul style={styles.list}>
-              {dataList.map((item, index) => (
+              {filteredList.map((item, index) => (
                 <li key={index} style={styles.listItem}>
-                  {item}
+                  <span style={styles.itemText}>{item}</span>
+                  <button 
+                    onClick={() => handleDelete(dataList.indexOf(item))} 
+                    style={styles.deleteButton}
+                  >
+                    Delete
+                  </button>
                 </li>
               ))}
             </ul>
@@ -82,6 +144,9 @@ const styles = {
   inputGroup: {
     display: 'flex',
     gap: '10px',
+    marginBottom: '15px',
+  },
+  searchGroup: {
     marginBottom: '20px',
   },
   input: {
@@ -91,6 +156,15 @@ const styles = {
     border: '1px solid #cbd5e0',
     fontSize: '14px',
     outline: 'none',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '8px 12px',
+    borderRadius: '6px',
+    border: '1px solid #e2e8f0',
+    fontSize: '13px',
+    outline: 'none',
+    backgroundColor: '#f8fafc',
   },
   button: {
     backgroundColor: '#0284c7',
@@ -102,18 +176,36 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '600',
   },
+  clearButton: {
+    backgroundColor: 'transparent',
+    color: '#ef4444',
+    border: '1px solid #fecaca',
+    borderRadius: '4px',
+    padding: '4px 8px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    fontWeight: '600',
+  },
   listSection: {
     borderTop: '1px solid #edf2f7',
     paddingTop: '16px',
   },
+  listHeaderRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
   listTitle: {
     fontSize: '16px',
     color: '#2d3748',
-    marginBottom: '12px',
+    margin: 0,
   },
   emptyText: {
     color: '#a0aec0',
     fontSize: '14px',
+    textAlign: 'center',
+    padding: '10px 0',
   },
   list: {
     listStyleType: 'none',
@@ -126,6 +218,25 @@ const styles = {
     borderRadius: '6px',
     marginBottom: '8px',
     border: '1px solid #e2e8f0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemText: {
     color: '#334155',
+    fontSize: '14px',
+    wordBreak: 'break-all',
+    paddingRight: '10px',
+  },
+  deleteButton: {
+    backgroundColor: '#fee2e2',
+    color: '#dc2626',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '6px 10px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    flexShrink: 0,
   },
 };
