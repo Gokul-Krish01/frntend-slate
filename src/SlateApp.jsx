@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = 'https://cld-bckend-prod.summatryaws.workers.dev/';
+const API_URL = import.meta.env.API_URL;
 
 export default function SlateApp() {
   // D1 Database States
